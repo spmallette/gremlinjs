@@ -120,8 +120,8 @@
         indexOf = ArrayProto.indexOf,
         concat = ArrayProto.concat,
         fn = {},
-        steps = {},
-        unpipedFuncs = ['toString', 'toList', 'toArray'];
+        steps = {'v':true, 'e': true, 'V': true, 'E': true},
+        unpipedFuncs = ['toString', 'toList', 'toArray', 'version', 'language'];
 
     fn.include = function (array, i) {
         return indexOf.call(array, i) === -1 ? false : true;
@@ -134,14 +134,13 @@
 
             print(that.name);
             print(that);
-            //if (isStep.call(this, that.name)) {
+            if (isStep(that.name)) {
               //  print('is true step');
                  this.pipeline = !!args.length ? that.apply(this, args) : that.call(this);
-             //} 
-            //  else {
+            } else {
             //     print('something wrong');
-            //     return !!args.length ? that.apply(this.graph, args) : that.call(this.graph);
-            // }
+                return !!args.length ? that.apply(this.graph, args) : that.call(this.graph);
+            }
             
             return this;
         };
@@ -153,7 +152,7 @@
         for (func in self) {
             //if (self.hasOwnProperty(func)) { *********************
             //if (hop.call(self, func)) {
-                if (typeof self[func] === "function" && isStep(func) && !fn.include(unpipedFuncs, func)) {
+                if (typeof self[func] === "function" && !fn.include(unpipedFuncs, func)) {
                     self[func] = self[func].pipe();
                     print(func);
                 }
@@ -162,56 +161,59 @@
         return self;
     }
 
-var GremlinJSPipeline = {
-    out: function (labels) {
+    function out(labels) {
         var args = slice.call(arguments);
         return !!args.length ? compose(this.pipeline).add(new OutPipe(args)) :
             compose(this.pipeline).add(new OutPipe());
-    },
-    in: function (labels) {
+    }
+
+    function _in(labels) {
         var args = slice.call(arguments);
         return !!args.length ? compose(this.pipeline).add(new InPipe(args)) :
             compose(this.pipeline).add(new InPipe());
-    },
-    id: function () {
+    }
+    function id() {
         return compose(this.pipeline).add(new IdPipe());
-    },
-    toList: function () {
+    }
+    function toList() {
         return this.pipeline.toList();
-    },
-    toArray: function () {
+    }
+    function toArray() {
         var list = [],
             iterator = this.pipeline.toList().iterator();
         while (iterator.hasNext()) {
             push.call(list, iterator.next());
         }
         return list;
-    },
-    v: function() {
+    }
+    function v() {
         var args = slice.call(arguments),
             vertices = [];
 
         for (var i = 0; i < args.length; i++) {
-            push.call(vertices, this.getVertex.call(this.graph, args[i]));
+            push.call(vertices, this.graph.getVertex(args[i]));
         };
         
         return compose(vertices);
-    },
-    V: function() {
+    }
+    function V() {
         var args = slice.call(arguments),
             vertices;
 
-        vertices = !!args.length ? this.getVertices.apply(this.graph, args) : this.getVertices.call(this.graph);
+        vertices = !!args.length ? this.graph.getVertices(args[0], args[1]) : this.graph.getVertices();
 
-        return new GremlinPipeline(vertices);
-    },
+        return compose(vertices);
+    }
 
-    E: function() {
-        var args = slice.call(arguments);
-        return !!args.length ? this.graph.getEdges.apply(null, args) : this.graph.getEdges();
-    },
+    function E() {
+        var args = slice.call(arguments)
+            edges;
 
-    e: function() {
+        edges = !!args.length ? this.graph.getEdges(args[0], args[1]) : this.graph.getEdges();
+        return compose(edges);
+    }
+
+    function e() {
         var args = slice.call(arguments),
             edges = [];
 
@@ -414,10 +416,7 @@ var GremlinJSPipeline = {
 
 
     // */
-}
-    //function out() {}
 
-    //function GremlinJSPipeline() {}
     /**
      * @author Frank Panetta
      */
@@ -493,28 +492,12 @@ var GremlinJSPipeline = {
                 if (func === 'currentPath') { //Need to figure this out??
                 } else 
                 if (typeof this.pipeline[func] === "function") {
-                      this.__proto__[func] = this.pipeline[func];
-
-                    //print(this[func]);
-                    addStep.call(this, func);
+                    if (!!!this[func]) {
+                        this.__proto__[func] = this.pipeline[func];
+                    }
+                     (func === 'in') ? addStep.call(this, '_in') : addStep.call(this, func);
                 }
             }
-        
-        }
-
-        for (func in GremlinJSPipeline) {
-            //if (hop.call(this.pipeline, func)) {
-
-            if (typeof GremlinJSPipeline[func] === "function") {
-                      this.__proto__[func] = GremlinJSPipeline[func];
-                      addStep.call(this, func);                        
-                      //print(func);
-                    //print(this[func]);
-                }
-                    //addStep.call(this, func);
-                
-            //}
-        
         }
 
         //Load Graph
@@ -539,13 +522,6 @@ var GremlinJSPipeline = {
         //     // that is ok
         //}
 
-        // Gremlin.test = GremlinJSPipeline;
-        // //Gremlin.pipeline = new GremlinJSPipeline();
-        // if (Gremlin.pipeline instanceof GremlinJSPipeline) {
-        //     print('cool');
-        // } else {
-        //     print('not colol!');
-        // }
     }
 
     //return GremlinGroovyPipeline
@@ -615,38 +591,6 @@ var GremlinJSPipeline = {
 
 
     Gremlin.toString = function () { return "gremlin-js - " + Tokens.VERSION; };
-
-    // function V() {
-    //     var args = slice.call(arguments);
-    //     return !!args.length ? this.getVertices.apply(null, args) : this.getVertices();
-    // }
-
-    // function E() {
-    //     var args = slice.call(arguments);
-    //     return !!args.length ? this.getEdges.apply(null, args) : this.getEdges();
-    // }
-
-    // function v() {
-    //     var args = slice.call(arguments),
-    //         vertices = [];
-
-    //     for (var i = 0; i < args.length; i++) {
-    //         push.call(vertices, this.graph.getVertex(args[i]));
-    //     };
-        
-    //     return compose(vertices);
-    // }
-
-    // function e() {
-    //     var args = slice.call(arguments),
-    //         edges = [];
-
-    //     for (var i = 0; i < args.length; i++) {
-    //         push.call(edges, this.getEdge(args[i]));
-    //     };
-
-    //     return compose(edges);
-    // }
 
     function version() {
         return Tokens.VERSION;
@@ -746,12 +690,17 @@ var GremlinJSPipeline = {
     Gremlin.prototype.version = version;
     Gremlin.prototype.language = language;
 
-    // Gremlin.prototype.V = V;
-    // Gremlin.prototype.E = E;
-    //Gremlin.prototype.v = v;
-    // Gremlin.prototype.e = e;
+    Gremlin.prototype.V = V;
+    Gremlin.prototype.E = E;
 
-    //Gremlin.prototype.out = out;
+    Gremlin.prototype.v = v;
+    Gremlin.prototype.e = e;
+
+    Gremlin.prototype.out = out;
+    Gremlin.prototype.in = _in;
+    Gremlin.prototype.toList = toList;
+    Gremlin.prototype.toArray = toArray;
+
 
     if (freeExports) {
         //if (typeof module == 'object' && module && module.exports == freeExports) {
