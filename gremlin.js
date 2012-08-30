@@ -129,7 +129,9 @@
         concat = ArrayProto.concat,
         fn = {},
         steps = {'v':true, 'e': true, 'V': true, 'E': true},
-        unpipedFuncs = ['toString', 'toList', 'toArray', 'version', 'language'];
+        unpipedFuncs = ['toString', 'version', 'language'],
+        emitters = ['toList', 'toArray'];//,
+        //testing = ['dedup'];
 
     fn.include = function (array, i) {
         return indexOf.call(array, i) === -1 ? false : true;
@@ -140,13 +142,24 @@
         return function () {
             var args = slice.call(arguments);
 
-            print(that.name);
-            print(that);
+            //print(that.name);
+//            print(that);
+            // if (fn.include(testing, that.name)) {
+            //     print('in tesitn');
+            //     !!args.length ? that.apply(this.pipeline, args) : that.call(this.pipeline);
+            // }
+
+            if (fn.include(emitters, that.name)) {
+                //print('in emmtt');
+                return !!args.length ? that.apply(this, args) : that.call(this);
+            }
+
             if (isStep(that.name)) {
-              //  print('is true step');
-                 this.pipeline = !!args.length ? that.apply(this, args) : that.call(this);
+                //print('is true step');
+                this.pipeline = !!args.length ? that.apply(this, args) : that.call(this);
+                //print('output - > ' + this.pipeline.toList())
             } else {
-            //     print('something wrong');
+                //print('something wrong');
                 return !!args.length ? that.apply(this.graph, args) : that.call(this.graph);
             }
             
@@ -160,7 +173,7 @@
         for (func in self) {
             if (typeof self[func] === "function" && !fn.include(unpipedFuncs, func)) {
                 self[func] = self[func].pipe();
-                print(func);
+                //print(func);
             }
         }
         return self;
@@ -198,7 +211,7 @@
         for (var i = 0; i < args.length; i++) {
             push.call(vertices, this.graph.getVertex(args[i]));
         };
-        
+        //print('vert - > ' + vertices[0])
         return compose(vertices);
     }
     function V() {
@@ -427,40 +440,53 @@
      */
     function Gremlin(newGraph) {
 
-        //print('in gremlin');
-
         this.graph = newGraph;
         this.pipeline = new GremlinPipeline();
 
         this.toString = function () {
-            if (this instanceof Gremlin) {
-                return this.pipeline.pipes.toString();
-            }
-            return 'ggg';
+            return this.pipeline.toList().toString();
         }
 
-        //create & store methods()
         load.call(this);
-        //addData.call(this);
-        //return 
-        
+        addData.call(this);
         return pipe.call(this);
     }
+function addData() {
+       var marko = this.graph.addVertex(1);
+        marko.setProperty("name", "marko");
+        marko.setProperty("age", 29);
 
-    // Gremlin.TinkerGraph = function() {
-    //     var args = slice.call(arguments),
-    //         gremlin = new Gremlin();
+        var vadas = this.graph.addVertex(2);
+        vadas.setProperty("name", "vadas");
+        vadas.setProperty("age", 27);
 
-    //     load.call(gremlin);
-    //     if (!!args.length) {
-    //         return JavaAdapter(TinkerGraph, gremlin, args[0]);
-    //     }
-    //     return new JavaAdapter(TinkerGraph, gremlin);
-    // };
+        var lop = this.graph.addVertex(3);
+        lop.setProperty("name", "lop");
+        lop.setProperty("lang", "java");
 
+        var josh = this.graph.addVertex(4);
+        josh.setProperty("name", "josh");
+        josh.setProperty("age", 32);
+
+        var ripple = this.graph.addVertex(5);
+        ripple.setProperty("name", "ripple");
+        ripple.setProperty("lang", "java");
+
+        var peter = this.graph.addVertex(6);
+        peter.setProperty("name", "peter");
+        peter.setProperty("age", 35);
+
+        this.graph.addEdge(7, marko, vadas, "knows").setProperty("weight", 0.5);
+        this.graph.addEdge(8, marko, josh, "knows").setProperty("weight", 1.0);
+        this.graph.addEdge(9, marko, lop, "created").setProperty("weight", 0.4);
+
+        this.graph.addEdge(10, josh, ripple, "created").setProperty("weight", 1.0);
+        this.graph.addEdge(11, josh, lop, "created").setProperty("weight", 0.4);
+
+        this.graph.addEdge(12, peter, lop, "created").setProperty("weight", 0.2);
+    }
     Gremlin.setGraph = function() {
         var args = slice.call(arguments);
-            //print('setGraph');
         if (!!!args[0] || !(args[0] instanceof Graph)) {
             //Throw error
             print('Please specify a graph database');
@@ -475,6 +501,8 @@
         var func,
             hop = ({}).hasOwnProperty;
 
+
+            //May not need this as I will have to implement all gremlin functions
         //Load Pipeline
         for (func in this.pipeline) {
             if (hop.call(this.pipeline, func)) {
@@ -483,6 +511,7 @@
                 if (typeof this.pipeline[func] === "function") {
                     if (!!!this[func]) {
                         this.__proto__[func] = this.pipeline[func];
+                        //print(this[func])
                     }
                     (func === 'in') ? addStep.call(this, '_in') : addStep.call(this, func);
                 }
@@ -659,7 +688,6 @@
     }
 
     function isStep(stepName) {
-        print('step name ' + stepName)
         return steps[stepName];
     }
 
@@ -684,41 +712,6 @@
         return 'gremlin-js';
     }
 
-
-    function addData() {
-       var marko = this.graph.addVertex(1);
-        marko.setProperty("name", "marko");
-        marko.setProperty("age", 29);
-
-        var vadas = this.graph.addVertex(2);
-        vadas.setProperty("name", "vadas");
-        vadas.setProperty("age", 27);
-
-        var lop = this.graph.addVertex(3);
-        lop.setProperty("name", "lop");
-        lop.setProperty("lang", "java");
-
-        var josh = this.graph.addVertex(4);
-        josh.setProperty("name", "josh");
-        josh.setProperty("age", 32);
-
-        var ripple = this.graph.addVertex(5);
-        ripple.setProperty("name", "ripple");
-        ripple.setProperty("lang", "java");
-
-        var peter = this.graph.addVertex(6);
-        peter.setProperty("name", "peter");
-        peter.setProperty("age", 35);
-
-        this.graph.addEdge(7, marko, vadas, "knows").setProperty("weight", 0.5);
-        this.graph.addEdge(8, marko, josh, "knows").setProperty("weight", 1.0);
-        this.graph.addEdge(9, marko, lop, "created").setProperty("weight", 0.4);
-
-        this.graph.addEdge(10, josh, ripple, "created").setProperty("weight", 1.0);
-        this.graph.addEdge(11, josh, lop, "created").setProperty("weight", 0.4);
-
-        this.graph.addEdge(12, peter, lop, "created").setProperty("weight", 0.2);
-    }
     // // GRAPHML
 
     //     Graph.metaClass.loadGraphML = {final def fileObject ->
@@ -733,7 +726,7 @@
     //         GraphMLWriter.outputGraph((Graph) delegate, new FileOutputStream(fileObject))
     //     }
 
-    //     // GRAPHSON
+    // GRAPHSON
 
     function loadGraphSON(fileObject) {
         try {
@@ -782,6 +775,7 @@
 
     Gremlin.prototype.out = out;
     Gremlin.prototype.in = _in;
+
     // Gremlin.prototype.has = has;
     // Gremlin.prototype.hasNot = hasNot;
     // Gremlin.prototype.interval = interval;
@@ -789,7 +783,7 @@
     // Gremlin.prototype.both = both;
     // Gremlin.prototype.bothV = bothV;
     // Gremlin.prototype.idEdge = idEdge;
-    // Gremlin.prototype.id = id;
+    Gremlin.prototype.id = id;
     // Gremlin.prototype.idVertex = idVertex;
     // Gremlin.prototype.inE = inE;
     // Gremlin.prototype.inV = inV;
