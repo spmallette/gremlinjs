@@ -24,6 +24,8 @@
     // importClass(com.tinkerpop.pipes.util.Pipeline);
     // importClass(com.tinkerpop.gremlin.Imports);
     importPackage(com.tinkerpop.blueprints);
+    importPackage(java.net);
+    importPackage(java.io);
     // importPackage(Packages.com.tinkerpop.blueprints.impls.orient);
     importPackage(Packages.com.tinkerpop.blueprints.impls.tg);
 
@@ -103,13 +105,19 @@
     importClass(com.tinkerpop.pipes.util.structures.Row);
     importClass(com.tinkerpop.pipes.util.structures.Table);
     importClass(com.tinkerpop.pipes.util.structures.Tree);
-    //var gremlinPipeline = require('GremlinJSPipeline.js');
+
+    importClass(com.tinkerpop.blueprints.util.io.gml.GMLReader);
+    importClass(com.tinkerpop.blueprints.util.io.gml.GMLWriter);
+    importClass(com.tinkerpop.blueprints.util.io.graphml.GraphMLReader);
+    importClass(com.tinkerpop.blueprints.util.io.graphml.GraphMLWriter);
+    importClass(com.tinkerpop.blueprints.util.io.graphson.GraphSONReader);
+    importClass(com.tinkerpop.blueprints.util.io.graphson.GraphSONWriter);
+    importClass(com.tinkerpop.blueprints.util.io.graphson.GraphSONMode);
+
 
     /** Detect free variable 'exports' */
     var freeExports = typeof exports == 'object' && exports &&
         (typeof global == 'object' && global && global == global.global && (scope = global), exports);
-
-    //var GremlinJSPipeline = load('GremlinJSPipeline.js');
 
     var toString = Object.prototype.toString,
         ArrayProto = Array.prototype,
@@ -148,15 +156,12 @@
 
     //pipe enable all Gremlin functions except unpiped functions
     function pipe() {
-        var func, self = this,hop = {}.hasOwnProperty;
+        var func, self = this;
         for (func in self) {
-            //if (self.hasOwnProperty(func)) { *********************
-            //if (hop.call(self, func)) {
-                if (typeof self[func] === "function" && !fn.include(unpipedFuncs, func)) {
-                    self[func] = self[func].pipe();
-                    print(func);
-                }
-            //}
+            if (typeof self[func] === "function" && !fn.include(unpipedFuncs, func)) {
+                self[func] = self[func].pipe();
+                print(func);
+            }
         }
         return self;
     }
@@ -436,7 +441,7 @@
 
         //create & store methods()
         load.call(this);
-        addData.call(this);
+        //addData.call(this);
         //return 
         
         return pipe.call(this);
@@ -468,25 +473,9 @@
     function load() {
 
         var func,
-            //GremlinJSPipeline = {},
-            //self = this,
-            //skip = [],
             hop = ({}).hasOwnProperty;
 
-
-        // GremlinJSPipeline = new GremlinPipeline();//, GremlinFluentPipeline,{});
-
-        // if(GremlinJSPipeline instanceof GremlinPipeline){
-        //     print('ok');
-        // } else {
-        //     print('not ok');
-        // }
-
-        // if (!GremlinJSPipeline.pathEnabled) {}
-
-        //I might need to create my own implementation to GremlinPipeline
         //Load Pipeline
-
         for (func in this.pipeline) {
             if (hop.call(this.pipeline, func)) {
                 if (func === 'currentPath') { //Need to figure this out??
@@ -495,7 +484,7 @@
                     if (!!!this[func]) {
                         this.__proto__[func] = this.pipeline[func];
                     }
-                     (func === 'in') ? addStep.call(this, '_in') : addStep.call(this, func);
+                    (func === 'in') ? addStep.call(this, '_in') : addStep.call(this, func);
                 }
             }
         }
@@ -508,19 +497,131 @@
         }
 
 
+        // // ElementLoader.load();
+        // Element.metaClass.map = {
+        //     final Map<String, Object> map = new HashMap<String, Object>();
+        //     for (final String key: ((Element) delegate).getPropertyKeys()) {
+        //         map.put(key, ((Element) delegate).getProperty(key))
+        //     }
+        //     return map;
+        // }
 
-        // ElementLoader.load();
-        // GraphLoader.load();
-        // IndexLoader.load();
-        // ObjectLoader.load();
-        // PipeLoader.load();
+        // Element.metaClass.keys = {
+        //     return ((Element) delegate).getPropertyKeys()
+        // }
 
-        // try {
-        //     SailGraphLoader.load();
-        // } catch (Throwable e) {
-        //     // this means that SailGraph was not in the dependency
-        //     // that is ok
-        //}
+        // Element.metaClass.values = {
+        //     final List values = new ArrayList();
+        //     for (final String key: ((Element) delegate).getPropertyKeys()) {
+        //         values.add(((Element) delegate).getProperty(key))
+        //     }
+        //     return values;
+        // }
+        // // GraphLoader.load(); //ok
+        // // IndexLoader.load();
+        //         IndexableGraph.metaClass.idx = {final Object indexName ->
+        //     return ((IndexableGraph) delegate).getIndices().find {it.getIndexName().equals(indexName)}
+        // }
+
+        // Index.metaClass.getAt = {final Map query ->
+        //     final Map.Entry entry = (Map.Entry) query.iterator().next();
+        //     return new GremlinGroovyPipeline().start((((Index) delegate).get((String) entry.getKey(), entry.getValue())));
+        // }
+        // // ObjectLoader.load();
+        // Object.metaClass._ = {final Closure closure ->
+        //     return new GremlinGroovyPipeline(delegate.iterator());
+        // }
+
+        // Map.metaClass.getAt = {final IntRange range ->
+        //     final int size = delegate.size();
+        //     int high = Math.min(size - 1, range.max());
+        //     int low = Math.max(0, range.min());
+
+        //     final Map tempMap = new LinkedHashMap();
+        //     int c = 0;
+        //     for (final Map.Entry entry: delegate.entrySet()) {
+        //         if (c >= low && c <= high) {
+        //             tempMap.put(entry.getKey(), entry.getValue());
+        //         }
+        //         if (c > high) {
+        //             break;
+        //         }
+        //         c++;
+
+        //     }
+        //     return tempMap;
+
+
+        // }
+
+        // Table.metaClass.apply = {final Closure... closures ->
+        //     return ((Table) delegate).apply(GroovyPipeFunction.generate(closures));
+
+        // }
+
+        // Table.metaClass.unique = {final Closure closure ->
+        //     final Table temp = Table.cloneTableStructure((Table) delegate);
+        //     for (final Row row: delegate.iterator().unique(closure)) {
+        //         temp.addRow(row);
+        //     }
+        //     return temp;
+        // }
+
+        // Table.metaClass.sort = {final Closure closure ->
+        //     final Table temp = Table.cloneTableStructure((Table) delegate);
+        //     for (final Row row: delegate.iterator().sort(closure)) {
+        //         temp.addRow(row);
+        //     }
+        //     return temp;
+        // }
+        // // PipeLoader.load();
+        // [Iterable, Iterator].each {
+        //     it.metaClass.count = {
+        //         return PipeHelper.counter(delegate.iterator());
+        //     }
+        // }
+
+        // [Iterable, Iterator].each {
+        //     it.metaClass.mean = {
+        //         double counter = 0;
+        //         double sum = 0;
+        //         delegate.each {counter++; sum += it;}
+        //         return sum / counter;
+        //     }
+        // }
+
+        // GremlinGroovyPipeline.metaClass.getAt = {final Integer index ->
+        //     return ((GremlinGroovyPipeline) delegate).range(index, index);
+        // }
+
+
+        // GremlinGroovyPipeline.metaClass.getAt = {final Range range ->
+        //     return ((GremlinGroovyPipeline) delegate).range(range.getFrom() as Integer, range.getTo() as Integer);
+        // }
+
+        // //if Graph instance of SailGraph || typeof SailGraph ??
+        // // try {
+        // //     SailGraphLoader.load();
+
+        // SailGraph.metaClass.uri {final String prefix ->
+        //     return ((SailGraph) delegate).expandPrefix(prefix)
+        // }
+
+        // SailGraph.metaClass.qn {final String uri ->
+        //     return ((SailGraph) delegate).prefixNamespace(uri)
+        // }
+
+        // SailGraph.metaClass.loadRDF = {final def fileObject, final String format ->
+        //     try {
+        //         ((SailGraph) delegate).loadRDF(new URL(fileObject).openStream(), "", format, null);
+        //     } catch (MalformedURLException e) {
+        //         ((SailGraph) delegate).loadRDF(new FileInputStream(fileObject), "", format, null);
+        //     }
+        // }
+        // // } catch (Throwable e) {
+        // //     // this means that SailGraph was not in the dependency
+        // //     // that is ok
+        // //}
 
     }
 
@@ -571,23 +672,6 @@
         }
         return r;
     }
-
-
-        // Graph.metaClass.V = {->
-        //     return new GremlinGroovyPipeline(((Graph) delegate).getVertices());
-        // }
-
-        // Graph.metaClass.V = { final String key, final Object value ->
-        //     return new GremlinGroovyPipeline(((Graph) delegate).getVertices(key, value));
-        // }
-
-        // Graph.metaClass.E = {->
-        //     return new GremlinGroovyPipeline(((Graph) delegate).getEdges());
-        // }
-
-        // Graph.metaClass.E = { final String key, final Object value ->
-        //     return new GremlinGroovyPipeline(((Graph) delegate).getEdges(key, value));
-        // }
 
 
     Gremlin.toString = function () { return "gremlin-js - " + Tokens.VERSION; };
@@ -651,17 +735,17 @@
 
     //     // GRAPHSON
 
-    //     Graph.metaClass.loadGraphSON = {final def fileObject ->
-    //         try {
-    //             GraphSONReader.inputGraph((Graph) delegate, new URL(fileObject).openStream());
-    //         } catch (MalformedURLException e) {
-    //             GraphSONReader.inputGraph((Graph) delegate, new FileInputStream(fileObject))
-    //         }
-    //     }
+    function loadGraphSON(fileObject) {
+        try {
+            GraphSONReader.inputGraph(this, new URL(fileObject).openStream());
+        } catch (e) {
+            GraphSONReader.inputGraph(this, new FileInputStream(fileObject))
+        }
+    }
 
-    //     Graph.metaClass.saveGraphSON = {final def fileObject ->
-    //         GraphSONWriter.outputGraph((Graph) delegate, new FileOutputStream(fileObject), GraphSONMode.NORMAL)
-    //     }
+    function saveGraphSON(fileObject) {
+        GraphSONWriter.outputGraph(this, new FileOutputStream(fileObject), GraphSONMode.NORMAL)
+    }
 
     //     Graph.metaClass.saveGraphSON = {final def fileObject, final GraphSONMode mode ->
     //         GraphSONWriter.outputGraph((Graph) delegate, new FileOutputStream(fileObject), mode)
@@ -698,8 +782,27 @@
 
     Gremlin.prototype.out = out;
     Gremlin.prototype.in = _in;
+    // Gremlin.prototype.has = has;
+    // Gremlin.prototype.hasNot = hasNot;
+    // Gremlin.prototype.interval = interval;
+    // Gremlin.prototype.bothE = bothE;
+    // Gremlin.prototype.both = both;
+    // Gremlin.prototype.bothV = bothV;
+    // Gremlin.prototype.idEdge = idEdge;
+    // Gremlin.prototype.id = id;
+    // Gremlin.prototype.idVertex = idVertex;
+    // Gremlin.prototype.inE = inE;
+    // Gremlin.prototype.inV = inV;
+    // Gremlin.prototype.label = label;
+    // Gremlin.prototype.outE = outE;
+    // Gremlin.prototype.outV = outV;
+    // Gremlin.prototype.map = map;
+    // Gremlin.prototype.property = property;
     Gremlin.prototype.toList = toList;
     Gremlin.prototype.toArray = toArray;
+
+    Gremlin.prototype.loadGraphSON = loadGraphSON;
+    Gremlin.prototype.saveGraphSON = saveGraphSON;
 
 
     if (freeExports) {
