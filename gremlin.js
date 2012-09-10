@@ -126,6 +126,10 @@
     importClass(com.tinkerpop.blueprints.util.io.graphson.GraphSONWriter);
     importClass(com.tinkerpop.blueprints.util.io.graphson.GraphSONMode);
 
+    importClass(java.util.ArrayList);
+    importClass(java.util.Collection);
+    importClass(java.util.List);
+    importClass(java.util.Map);
 
     /** Detect free variable 'exports' */
     var freeExports = typeof exports == 'object' && exports &&
@@ -145,11 +149,39 @@
         return indexOf.call(array, i) === -1 ? false : true;
     };
 
-    Function.prototype.delegate = function () {
-        var that = this;
+    Function.prototype.delegate = function (ctx) {
+        var that = this,
+            thisObj = ctx;//slice.call(arguments);
         return function () {
             var args = slice.call(arguments);
-            return !!args.length ? that.apply(this.graph, args) : that.call(this.graph);
+            // return !!args.length ? that.apply(this.graph, args) : that.call(this.graph);
+
+
+
+var pipeObj = new GremlinPipeline(args);
+
+                print(thisObj);
+                print(args);
+print('index: '+args[0]);
+
+ var list = [];//new ArrayList();
+             iterator = pipeObj.iterator();
+            while (iterator.hasNext()) {
+                //list.add(func.call(iterator));
+                
+                push.call(list, that.call(iterator.next()));
+            }
+            print(list);
+            // var pipe = new GremlinPipeline(list);
+            // print(pipe.toList());
+            //this.add(pipe);
+           
+            return list;//new GremlinJSPipeline(this);
+            //return func.call(this, it);
+
+
+
+            //return that.call();//!!args.length ? that.apply(pipeObj) : that.call(pipeObj);
         };
     };
 
@@ -250,10 +282,6 @@
         }
         print(args[0].toString());
         return new Gremlin(args[0]);
-    }
-
-    function getGraph() {
-        return this.graph;
     }
 
     function load() {
@@ -401,7 +429,9 @@
 function GremlinJSPipeline(arg) {
     
     var gremlinPipeline
-        doQueryOptimization = true;
+        doQueryOptimization = true,
+        //endPipe,
+        self = this;
 
     if (!arg) {
         gremlinPipeline = new GremlinPipeline();
@@ -409,7 +439,7 @@ function GremlinJSPipeline(arg) {
         gremlinPipeline = arg;
     }
 
-    // this needs to go into compose() -- how? ---------------------------------------------------
+    // this needs to go into compose() -- maybe? ---------------------------------------------------
     // public GremlinPipeline(final Object starts, final boolean doQueryOptimization) {
     //     super(new StartPipe(starts));
     //     this.doQueryOptimization = doQueryOptimization;
@@ -433,7 +463,25 @@ function GremlinJSPipeline(arg) {
         'gte': FilterPipe.Filter.LESS_THAN
     }
 
+    var jsAbstractPipe = {
+        processNextStart: function(){
+            return this.compute(this.starts);
+        },
+        toString: function() {
+            return 'jsFunctionPipe';
+        },
+        compute: undefined
+    }
+
     return {
+        step: function(aFunction) {
+            var jsPipeFunction = {};
+            jsAbstractPipe.compute = aFunction;
+            var jsFunctionPipe = new JavaAdapter(AbstractPipe, jsAbstractPipe);
+
+            jsPipeFunction.compute = aFunction;
+            return this.add(new FunctionPipe(new PipeFunction(jsPipeFunction)));
+        },
         toString: function() { return gremlinPipeline.toList().toString(); },
         
         id: function() {
@@ -465,7 +513,7 @@ function GremlinJSPipeline(arg) {
             return new GremlinJSPipeline(gremlinPipeline.add(arg));
         },        
 
-        has: function() {//final String key, final Object value)
+        has: function() {
             var args = slice.call(arguments),
                 key = args[0],
                 comparison,
@@ -497,7 +545,7 @@ function GremlinJSPipeline(arg) {
 
         },
 
-        hasNot: function() {//final String key, final Object value)
+        hasNot: function() {
             var args = slice.call(arguments),
                 key = args[0],
                 comparison,
@@ -583,9 +631,37 @@ function GremlinJSPipeline(arg) {
         property: function(key) {
             return this.add(new PropertyPipe(key));
         },
+        /**
+         * Add a FunctionPipe to the end of the pipeline.
+         * The provide provided PipeFunction emits whatever is defined by the function.
+         * This serves as an arbitrary step computation.
+         *
+         * @param function the function of the FunctionPipe
+         * @return the extended Pipeline
 
 
+         g.v(1).out.step{ it.next().map() }
+            ==>{name=vadas, age=27}
+            ==>{name=lop, lang=java}
+            ==>{name=josh, age=32}
 
+
+         */
+
+        /**
+         * Return the next X objects in the pipeline as a list.
+         *
+         * @param number the number of objects to return
+         * @return a list of X objects (if X objects occur)
+         */
+        // next: function(num) {
+        //     var list = new ArrayList(num);
+        //     PipeHelper.fillCollection(gremlinPipeline, list, num);
+        //     return list;
+        // },
+        // next: function() {
+        //     return this.endPipe.next();
+        // },
 
         count: function() {
             return PipeHelper.counter(gremlinPipeline);
